@@ -1,0 +1,30 @@
+ifndef __gmel_included
+
+.PHONY: gmel.so
+
+# $> - the name of the last prerequisite
+> = $(lastword $^)
+
+# gmel.so
+# bind and bind_r:
+# mark token as a function, so it can be used via $(token arg1,arg2,...)
+# without arguments, use $(call binded_func)
+# $(bind_r arg1,arg2,...) is $(bind arg2,arg1,...)
+# see examples in test.mk
+
+# sshell is safe shall:
+# $(bind sshell,popen,/bin/bash,-e,-o,pipefail,-c)
+
+# +some of C functions bindings:
+# $(strptime format,date_str) -> timestamp
+#       $(strptime %Y-%m-%d,2014-01-11) -> 1389384000
+# $(strftime format,timestamp) -> date_str
+#       $(strftime %Y%m%d,1389384000) -> 20140111
+# $(strfptime dst_format,src_format,src_date) -> dst_date
+#       $(strfptime %Y%m%d,%Y-%m-%d %H,2014-01-11 23) -> 20140111
+# load $(__gmel_load_path)gmel_time.so
+load gmel.so
+
+__gmel_included := 1
+
+endif # __gmel_included

@@ -1,0 +1,10 @@
+ifndef __gmel_py2_included
+
+.PHONY: gmel_py2.so
+
+# $(py2_eval $(code)) - eval code in context of __main__ module
+# $(py2_call $(callable_name)[, optional args]) - call callable_name with given args
+load gmel_py2.so
+
+__gmel_py2_included := 1
+endif # __gmel_py2_included

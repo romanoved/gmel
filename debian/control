@@ -1,0 +1,11 @@
+Source: gmel
+Section: libs
+Priority: optional
+Maintainer: Evgenii Romanov <romanoved@yandex.ru>
+Build-Depends: debhelper, make(>=4.0), gcc(>=4.4), python-dev
+Standards-Version: 3.9.3
+
+Package: gmel
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: libraries for make.
