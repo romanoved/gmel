@@ -90,7 +90,7 @@ endef
 $(py2_eval $(py_cmd))
 ```
 ---
-#### py2_exec
+#### py2_call
 Arguments: 1. callable_name 2+ [optional arguments]  
 Returns: result of `callable_name(*arguments)`  
 Action: try to call python callable_name in context of main module  
