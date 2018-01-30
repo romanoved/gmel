@@ -6,5 +6,23 @@ ifndef __gmel_py2_included
 # $(py2_call $(callable_name)[, optional args]) - call callable_name with given args
 load gmel_py2.so
 
+define __gmel_py2_pycall_wrapper_cmd :=
+import collections
+def gmel_pycall_wrapper(result):
+    if result is None:
+        return ''
+    if isinstance(result, str):
+        return result
+    if isinstance(result, unicode):
+        return result.encode('utf-8')
+    if isinstance(result, (int, long)):
+        return str(result)
+    if isinstance(result, collections.Iterable):
+        result = [gmel_pycall_wrapper(item) for item in result]
+        return ' '.join(result).strip()
+    raise RuntimeError('Unexpected type %s as result of function call', type(result))
+endef
+$(py2_eval $(__gmel_py2_pycall_wrapper_cmd))
+
 __gmel_py2_included := 1
 endif # __gmel_py2_included

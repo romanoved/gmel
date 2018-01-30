@@ -20,6 +20,7 @@ char* py2_call(char* func_name, int argc, char** argv) {
     PyObject* obj;
     PyObject* sobj;
     PyObject* py_args = NULL;
+    PyObject* gmel_pycall_wrapper = NULL;
     int i;
 
     if (!(py_args = PyTuple_New(argc - 1))) {
@@ -59,8 +60,15 @@ char* py2_call(char* func_name, int argc, char** argv) {
                                 func_name, argv[0]));
         abort();
     }
-    if (!(sobj = PyObject_Str(obj))) {
+    if (!(gmel_pycall_wrapper = PyDict_GetItemString(PyModule_GetDict(PY2_MAIN), "gmel_pycall_wrapper"))) {
         Py_DECREF(obj);
+        PyErr_Print();
+        gmk_expand(save_sprintf("$(error %s: fail to find gmel_pycall_wrapper", func_name));
+        abort();
+    }
+    if (!(sobj = PyObject_CallFunction(gmel_pycall_wrapper, "(N)", obj))) {
+        Py_DECREF(obj);
+        PyErr_Print();
         gmk_expand(save_sprintf(
             "$(error %s: fail to convert result of '%s' to string)", func_name,
             argv[0]));

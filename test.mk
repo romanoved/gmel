@@ -50,10 +50,10 @@ endef
 $(py2_eval $(py_cmd))
 define py_cmd :=
 def test2(a, b):
-    return test(a, b) + '/'
+    return test(a, b) + '/', 1
 endef
 $(py2_eval $(py_cmd))
-$(call test_assert,$(py2_call test2,/home/test,../user),/home/user/)
+$(call test_assert,$(py2_call test2,/home/test,../user),/home/user/ 1)
 $(call stop_test)
 
 $(call start_test,strptime)
