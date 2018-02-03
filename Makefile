@@ -42,5 +42,5 @@ clean:
 
 install: build
 	mkdir -p $(DESTDIR)/usr/lib $(DESTDIR)/usr/include
-	cp gmel.so gmel_py2.so $(DESTDIR)/usr/lib/
-	cp gmel gmel_py2 $(DESTDIR)/usr/include/
+	cp $(SO) $(DESTDIR)/usr/lib/
+	cp gmel gmel_py2 gmel_py3 $(DESTDIR)/usr/include/
