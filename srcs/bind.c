@@ -15,7 +15,7 @@ typedef struct gmel_memfunc {
 
 void gmel_memfunc_free(gmel_memfunc* ptr) {
     int i;
-    for (i = 0; i < ptr->argc; ++i) gmel_sfree(ptr->argv[i]);
+    for (i = 0; i < ptr->argc; ++i) GMEL_FREE(ptr->argv[i]);
 }
 
 void gmel_memfunc_tabkle_key_free(void* key) {
@@ -32,10 +32,7 @@ void vector_push_back_string(Vector* vector, const char* str, size_t size) {
     size_t pos;
     size = size ? size : strlen(str);
     for (pos = 0; pos < size; ++pos)
-        if (vector_push_back(vector, (void*)(str + pos))) {
-            perror("vector_push_back_string");
-            abort();
-        }
+        GMEL_ASSERT(!vector_push_back(vector, (void*)(str + pos)));
 }
 char* gmel_memfunc_call(char* func_name, int argc, char** argv) {
     int i;
@@ -55,18 +52,14 @@ char* gmel_memfunc_call(char* func_name, int argc, char** argv) {
 
     gmel_memfunc* func_info =
         (gmel_memfunc*)ht_lookup(&GMEL_MEMFUNC_TABLE, &func_name_key_view);
-    if (!func_info) {
-        gmk_expand(save_sprintf(
-            "$(error internal error: no func_info for func %s", func_name));
-        abort();
-    }
+
+    if (!func_info) gmel_error("no func_info for func %s", func_name);
 
     tmp_argc = func_info->argc + argc;
 
     if (func_info->binded_func_ptr) {
         /* argv[args] must be NULL, so argc + 1 */
-        tmp_argv = (char**)gmel_smalloc("memorized_wrapper:malloc",
-                                        (tmp_argc + 1) * sizeof(char*));
+        tmp_argv = (char**)GMEL_ALLOC((tmp_argc + 1) * sizeof(char*));
 
         memcpy((void*)tmp_argv, (void*)func_info->argv,
                func_info->argc * sizeof(char*));
@@ -75,7 +68,7 @@ char* gmel_memfunc_call(char* func_name, int argc, char** argv) {
 
         result = func_info->binded_func_ptr(func_name, tmp_argc, tmp_argv);
 
-        gmel_sfree((void*)tmp_argv);
+        GMEL_FREE(tmp_argv);
         return result;
     }
 
@@ -117,18 +110,15 @@ char* gmel_bind_internal(char* target_func_name, char* bind_func_name, int argc,
     func_info.binded_func_ptr = NULL;
     func_info.binded_func_name = gmel_strview_empty();
 
-    if (!strcmp(target_func_name, bind_func_name)) {
-        gmk_expand(save_sprintf("$(error cannot bind '%s' to itself)",
-                                target_func_name));
-        abort();
-    }
+    if (!strcmp(target_func_name, bind_func_name))
+        gmel_error("cannot bind '%s' to itself", target_func_name);
 
     /* check for existance */
     gmel_strview target_func_name_key_view =
         gmel_strview_from_zero_nocopy(target_func_name);
 
     if (ht_contains(&GMEL_MEMFUNC_TABLE, &target_func_name_key_view)) {
-        err_str = save_sprintf("$(error %s: function already exsists)",
+        err_str = safe_sprintf("$(error %s: function already exsists)",
                                target_func_name_key_view.data);
         gmk_expand(err_str);
         /* never reached */
@@ -149,11 +139,10 @@ char* gmel_bind_internal(char* target_func_name, char* bind_func_name, int argc,
 
     func_info.argc = argc;
     if (func_info.argc) {
-        func_info.argv = (char**)gmel_smalloc("exec_bind::malloc",
-                                              func_info.argc * sizeof(char*));
+        func_info.argv = (char**)GMEL_ALLOC(func_info.argc * sizeof(char*));
         for (i = 0; i < argc; ++i) {
             len = strlen(argv[i]) + 1;
-            func_info.argv[i] = (char*)gmel_smalloc("exec_bind::malloc", len);
+            func_info.argv[i] = (char*)GMEL_ALLOC(len);
             memcpy(func_info.argv[i], argv[i], len);
         }
     } else {
@@ -162,8 +151,11 @@ char* gmel_bind_internal(char* target_func_name, char* bind_func_name, int argc,
 
     /* now GMEL_MEMFUNC_TABLE is owner of allocated data in func_name_key and
      * func_info */
-    if (ht_insert(&GMEL_MEMFUNC_TABLE, &func_name_key, &func_info))
-        gmel_abort("exec_bind::ht_insert");
+    if (ht_insert(&GMEL_MEMFUNC_TABLE, &func_name_key, &func_info)) {
+        gmk_expand("$(error exec_bind::ht_insert");
+        abort();
+        return NULL;
+    }
 
     gmk_add_function(func_name_key.data, (gmk_func_ptr)gmel_memfunc_call, 0, 0,
                      GMK_FUNC_NOEXPAND);
@@ -186,13 +178,13 @@ char* gmel_bind_r(char* func_name, int argc, char** argv) {
 }
 
 int gmel_memfunc_table_setup() {
-    if (ht_setup(&GMEL_MEMFUNC_TABLE, sizeof(gmel_strview),
-                 sizeof(gmel_memfunc), 1024))
-        abort();
+    GMEL_ASSERT(!ht_setup(&GMEL_MEMFUNC_TABLE, sizeof(gmel_strview),
+                          sizeof(gmel_memfunc), 1024));
 
     GMEL_MEMFUNC_TABLE.compare = gmel_ht_strview_compare;
     GMEL_MEMFUNC_TABLE.hash = gmel_ht_strview_hash;
     GMEL_MEMFUNC_TABLE.key_free = (free_t)gmel_memfunc_tabkle_key_free;
     GMEL_MEMFUNC_TABLE.value_free = (free_t)gmel_memfunc_tabkle_value_free;
+
     return 1;
 }

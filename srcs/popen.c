@@ -102,7 +102,7 @@ int gmel_append_buf(char** buf, size_t* buf_size, unsigned int* total_readed,
     if (*buf_size < required) {
         new_bus_size =
             *buf_size + (required > *buf_size ? required : *buf_size);
-        tmp_buf = (char*)gmel_smalloc("gmel_append_buf::malloc", new_bus_size);
+        tmp_buf = (char*)GMEL_ALLOC(new_bus_size);
         memcpy(tmp_buf, *buf, *buf_size);
         free(*buf);
         *buf = tmp_buf;
@@ -136,6 +136,85 @@ void gmel_fold_newlines(char* buffer, unsigned int* length, int trim_newlines) {
     *length = last_nonnl - buffer;
 }
 
+void expand_escapes(char* dest, const char* src) {
+    char c;
+
+    while ((c = *(src++))) {
+        switch (c) {
+            case '\a':
+                *(dest++) = '\\';
+                *(dest++) = 'a';
+                break;
+            case '\b':
+                *(dest++) = '\\';
+                *(dest++) = 'b';
+                break;
+            case '\t':
+                *(dest++) = '\\';
+                *(dest++) = 't';
+                break;
+            case '\n':
+                *(dest++) = '\\';
+                *(dest++) = 'n';
+                break;
+            case '\v':
+                *(dest++) = '\\';
+                *(dest++) = 'v';
+                break;
+            case '\f':
+                *(dest++) = '\\';
+                *(dest++) = 'f';
+                break;
+            case '\r':
+                *(dest++) = '\\';
+                *(dest++) = 'r';
+                break;
+            case '\\':
+                *(dest++) = '\\';
+                *(dest++) = '\\';
+                break;
+            case '\"':
+                *(dest++) = '\\';
+                *(dest++) = '\"';
+                break;
+            default:
+                *(dest++) = c;
+        }
+    }
+
+    *dest = '\0';
+}
+
+char* sprintf_argv(char** argv) {
+    char* tmp = NULL;
+    char* escaped_arg = NULL;
+    char* rez = (char*)malloc(2 * sizeof(char));
+    if (!rez) {
+        perror("util_common.h::sprintf_argv malloc failed");
+        abort();
+    }
+    rez[0] = '[';
+    rez[1] = '\0';
+
+    while (*argv)
+        for (; *argv; ++argv) {
+            escaped_arg = (char*)malloc(2 * strlen(*argv) + 1);
+            if (!escaped_arg) {
+                perror("util_common.h::sprintf_argv malloc failed");
+                abort();
+            }
+            expand_escapes(escaped_arg, *argv);
+            tmp = safe_sprintf("%s'%s'%s", rez, escaped_arg,
+                               *(argv + 1) ? ", " : "");
+            free(escaped_arg);
+            free(rez);
+            rez = tmp;
+        }
+    tmp = safe_sprintf("%s]", rez);
+    free(rez);
+    return tmp;
+}
+
 char* gmel_popen(char* func_name, int argc, char** argv) {
     char* err_str = "";
     size_t readed;
@@ -150,7 +229,7 @@ char* gmel_popen(char* func_name, int argc, char** argv) {
 
     FILE* proc = gmel_popen_wrapper(argv, "r");
     if (!proc) {
-        err_str = save_sprintf("$(error %s: popen failed on %s (%s))",
+        err_str = safe_sprintf("$(error %s: popen failed on %s (%s))",
                                func_name, sprintf_argv(argv), strerror(errno));
         gmk_expand(err_str);
         perror(err_str);
@@ -158,7 +237,7 @@ char* gmel_popen(char* func_name, int argc, char** argv) {
         return NULL;
     }
 
-    buf = (char*)malloc(read_buf_size);
+    buf = (char*)GMEL_ALLOC(read_buf_size);
     buf_size = read_buf_size;
     *buf = 0;
 
@@ -169,7 +248,7 @@ char* gmel_popen(char* func_name, int argc, char** argv) {
     ret_code = gmel_pclose_wrapper(proc);
     if (ret_code) {
         free(buf);
-        err_str = save_sprintf("$(error %s: %s exit with code %d)", func_name,
+        err_str = safe_sprintf("$(error %s: %s exit with code %d)", func_name,
                                sprintf_argv(argv), ret_code / 256);
         gmk_expand(err_str);
         perror(err_str);

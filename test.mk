@@ -32,7 +32,8 @@ all:
 	@$(if $(failed),$(error tests failed))
 
 include gmel
-include gmel_py2
+$(info GMEL_PY_VERSION=$(GMEL_PY_VERSION))
+$(info )
 
 $(bind popen_bind,bind_r,popen)
 
@@ -40,20 +41,24 @@ $(popen_bind python_sh,python,-c)
 $(popen_bind sequence,seq)
 $(popen_bind wsequence,seq,-w)
 
-$(call start_test,gmel_py2)
+$(call start_test,gmel_py)
 define py_cmd :=
 import sys
 import os
+def test_none():
+    return
 def test(a, b):
     return os.path.normpath(os.path.join(a, b))
 endef
-$(py2_eval $(py_cmd))
+$(py_eval $(py_cmd))
 define py_cmd :=
 def test2(a, b):
-    return test(a, b) + '/', 1
+    return test(a, b) + '/', None, 1
 endef
-$(py2_eval $(py_cmd))
-$(call test_assert,$(py2_call test2,/home/test,../user),/home/user/ 1)
+$(py_eval $(py_cmd))
+$(call test_assert,$(py_call test_none),)
+$(call test_assert,$(py_call test2,/home/test,../user),/home/user/ 1)
+$(call py_finalize)
 $(call stop_test)
 
 $(call start_test,strptime)

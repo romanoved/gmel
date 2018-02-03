@@ -6,7 +6,7 @@
 #include <string.h>
 
 void gmel_strview_free(gmel_strview* ptr) {
-    gmel_sfree((void*)ptr->data);
+    GMEL_FREE(ptr->data);
     ptr->data = NULL;
     ptr->size = 0;
 }
@@ -27,8 +27,7 @@ gmel_strview gmel_strview_from_zero_nocopy(char const* data) {
 gmel_strview gmel_strview_from_zero(char const* data) {
     gmel_strview result;
     result.size = strlen(data) + 1;
-    result.data = (char const*)gmel_smalloc("gmel_strview_from_zero::malloc",
-                                            result.size);
+    result.data = (char const*)GMEL_ALLOC(result.size);
     memcpy((char*)result.data, data, result.size);
     return result;
 }

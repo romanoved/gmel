@@ -1,30 +1,40 @@
 #!/usr/bin/make -f
+# clang-format -i -style="{BasedOnStyle: Google, IndentWidth: 4, ColumnLimit: 80}" *
 
 CFLAGS += -fPIC -Wall
 all: test;
 
 
-SO := gmel.so gmel_py2.so
+SO := gmel.so gmel_py2.so gmel_py3.so
 DEPS :=  util_hashtable popen util util_common time_fmt bind util_vector util_strview
 OBJS := $(addprefix build/,$(addsuffix .o,$(DEPS)))
 
 build: $(SO)
 
+
 gmel_py2.so: build/gmel_py2.o $(OBJS)
-	$(CC) -shared  -Wno-write-strings -o $@ $^ $$(python2-config --ldflags)
+	$(CC) -shared -o $@ $^ $$(python2-config --ldflags)
 
-%.so: build/%.o $(OBJS)
-	$(CC) -shared  -Wno-write-strings -o $@ $^
+gmel_py3.so: build/gmel_py3.o $(OBJS)
+	$(CC) -shared -o $@ $^ $$(python3-config --ldflags)
 
-build/gmel_py2.o: srcs/gmel_py2.c
+build/gmel_py2.o: srcs/gmel_py.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $< $$(python2-config --cflags)
+
+build/gmel_py3.o: srcs/gmel_py.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $< $$(python3-config --cflags)
+
+%.so: build/%.o $(OBJS)
+	$(CC) -shared -o $@ $^
 
 build/%.o: srcs/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 test: build
+	GMEL_USE_PY2=1 ./test.mk
 	./test.mk
 
 clean:

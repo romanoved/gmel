@@ -1,3 +1,12 @@
+gmel (0.1.1) unstable; urgency=medium
+
+  * Add python3 support.
+  * Load gmel_py3 on import gmel by default.
+  * Fix errors in error checking.
+  * rename: py2_ -> py_ methods.
+
+ -- Evgeniy Romanov <romanoved@yandex-team.ru>  Sun, 04 Feb 2018 00:14:05 +0300
+
 gmel (0.1.0) unstable; urgency=medium
 
   * Initial release.

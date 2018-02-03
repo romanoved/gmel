@@ -23,8 +23,27 @@ ifndef __gmel_included
 # $(strfptime dst_format,src_format,src_date) -> dst_date
 #       $(strfptime %Y%m%d,%Y-%m-%d %H,2014-01-11 23) -> 20140111
 # load $(__gmel_load_path)gmel_time.so
+
 load gmel.so
 
 __gmel_included := 1
+
+# $(py_eval $(code)) - eval code in context of __main__ module
+# $(py_call $(callable_name)[, optional args]) - call callable_name with given args
+# GMEL_PY2 - use python2 instead of python3
+
+ifdef GMEL_USE_PY2
+include gmel_py2
+else
+include gmel_py3
+endif
+
+define __gmel_py_version :=
+import sys
+def gmel_py_version():
+    return sys.version_info[:3]
+endef
+$(py_eval import sys; gmel_py_version = lambda: sys.version_info[:3])
+GMEL_PY_VERSION := $(py_call gmel_py_version)
 
 endif # __gmel_included

@@ -3,9 +3,41 @@ Based on gnu make [Loaded Object API](http://www.gnu.org/software/make/manual/ma
 Required make >= 4.0.
 Currently tested only under linux.
 
+The most interesting part of gmel is the embedded python interpreter.
+After initialization, execution of an arbitrary python code in the context of the __main__ module is available.
+See py_eval and py_call for details.
+
 ### features of gmel (`include gmel`)
 ---
 #### $> (automatic variable) - same as $(lastword $^)
+#### GMEL_USE_PY2 - if defined, gmel use python2 instead of python3 engine on `include gmel`
+---
+#### py_eval
+Arguments: 1. python_code  
+Returns: None  
+Action: evaluates given python_code in embedded interpreter.  
+Example:
+```make
+define py_cmd :=
+import os
+def test(a, b):
+    return os.path.normpath(os.path.join(a, b))
+endef
+$(py_eval $(py_cmd))
+```
+---
+#### py_call
+Arguments: 1. callable_name 2+ [optional arguments]  
+Returns: result of `gmel_pycall_wrapper(callable_name(*arguments))`  
+Action: try to call python callable_name in context of main module  
+Details: gmel python engine formats arguments as unicode for python3 and as bytes for python2.
+As result of function call it expects None or bytes.
+For convenience, there is an automatically applied built-in gmel_pycall_wrapper: str/bytes -> bytes, int -> str(int), and so on.
+See gmel_py2/gmel_py3 in source code for concrete rules.  
+Example:
+```make
+$(py_call test,/home/test,../user) # returns /home/user
+```
 ---
 #### bind
 Arguments: 1. target_name 2. bind_name 3+ [optional command arguments]  
@@ -75,27 +107,3 @@ Example:
 $(strfptime %Y%m%d,%Y-%m-%d %H,2014-01-11 23) # returns 20140111
 ```
 ---
-### features of gmel_py2 (`include gmel_py2`)
-#### py2_eval
-Arguments: 1. python_code  
-Returns: None  
-Action: evaluates given python_code in embedded interpreter.
-Example:
-```make
-define py_cmd :=
-import os
-def test(a, b):
-    return os.path.normpath(os.path.join(a, b))
-endef
-$(py2_eval $(py_cmd))
-```
----
-#### py2_call
-Arguments: 1. callable_name 2+ [optional arguments]  
-Returns: result of `callable_name(*arguments)`  
-Action: try to call python callable_name in context of main module  
-Example:
-```make
-$(py2_call test,/home/test,../user) # returns /home/user
-```
-```
