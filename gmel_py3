@@ -1,0 +1,30 @@
+ifndef __gmel_py3_included
+
+.PHONY: gmel_py3.so
+
+# $(py3_eval $(code)) - eval code in context of __main__ module
+# $(py3_call $(callable_name)[, optional args]) - call callable_name with given args
+load gmel_py3.so
+
+$(call py_initialize)
+
+define __gmel_py3_pycall_wrapper_cmd :=
+import collections
+def gmel_pycall_wrapper(result):
+    if result is None:
+        return
+    if isinstance(result, bytes):
+        return result
+    if isinstance(result, str):
+        return result.encode()
+    if isinstance(result, int):
+        return str(result).encode()
+    if isinstance(result, collections.Iterable):
+        result = (gmel_pycall_wrapper(item) for item in result)
+        return b' '.join(item for item in result if item is not None).strip()
+    raise RuntimeError('Unexpected type {} as result of function call'.format(type(result)))
+endef
+$(py_eval $(__gmel_py3_pycall_wrapper_cmd))
+
+__gmel_py3_included := 1
+endif # __gmel_py3_included
