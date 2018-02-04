@@ -1,9 +1,8 @@
 ifndef __gmel_py3_included
+__gmel_py3_included := 1
 
 .PHONY: gmel_py3.so
 
-# $(py3_eval $(code)) - eval code in context of __main__ module
-# $(py3_call $(callable_name)[, optional args]) - call callable_name with given args
 load gmel_py3.so
 
 $(call py_initialize)
@@ -25,6 +24,6 @@ def gmel_pycall_wrapper(result):
     raise RuntimeError('Unexpected type {} as result of function call'.format(type(result)))
 endef
 $(py_eval $(__gmel_py3_pycall_wrapper_cmd))
+$(undefine __gmel_py3_pycall_wrapper_cmd)
 
-__gmel_py3_included := 1
 endif # __gmel_py3_included
