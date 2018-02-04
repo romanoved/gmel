@@ -1,5 +1,9 @@
 #pragma once
 
+extern int GMEL_TRACE_LEVEL;
+
+unsigned int parse_uint(const char* str);
+
 __attribute__((format(printf, 1, 2))) char* safe_sprintf(const char* format,
                                                          ...);
 __attribute__((format(printf, 1, 2))) void gmel_error(const char* format, ...);

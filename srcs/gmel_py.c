@@ -10,6 +10,9 @@ extern const gmk_floc* reading_file;
 
 static PyObject* GMEL_PY_MAIN_MODULE = NULL;
 static PyObject* GMEL_PY_MAIN_DICT = NULL;
+static PyObject* GMEL_PY_BASE_EXC = NULL;
+
+char* gmel_py_eval(char* func_name, int argc, char** argv);
 
 void gmel_py_check_initialize(void) {
     if (!GMEL_PY_MAIN_MODULE)
@@ -23,6 +26,14 @@ char* gmel_py_initialize(char* func_name, int argc, char** argv) {
 
     GMEL_PY_ASSERT(GMEL_PY_MAIN_MODULE = PyImport_AddModule("__main__"));
     GMEL_PY_ASSERT(GMEL_PY_MAIN_DICT = PyModule_GetDict(GMEL_PY_MAIN_MODULE));
+    // GMEL_PY_ASSERT(GMEL_PY_BASE_EXC =
+    // PyErr_NewException("__main__.GMELException", NULL, GMEL_PY_MAIN_DICT));
+
+    const char* cmd = "class GMELException(Exception): pass";
+    const char* cmd_argv[] = {cmd, NULL};
+    gmel_py_eval("gmel_py_initialize", 1, (char**)cmd_argv);
+    GMEL_PY_ASSERT(GMEL_PY_BASE_EXC = PyDict_GetItemString(GMEL_PY_MAIN_DICT,
+                                                           "GMELException"));
 
     return NULL;
 }
@@ -97,6 +108,29 @@ char* gmel_py_call(char* func_name, int argc, char** argv) {
         gmel_error("%s: pyfunc '%s' is not callable", func_name, argv[0]);
 
     if (!(obj = PyObject_CallObject(obj, py_args))) {
+        if (PyErr_ExceptionMatches(GMEL_PY_BASE_EXC)) {
+            PyObject *ptype = NULL, *pvalue = NULL, *ptraceback = NULL;
+            PyErr_Fetch(&ptype, &pvalue, &ptraceback);
+            if (pvalue) {
+                GMEL_PY_ASSERT(obj = PyObject_Str(pvalue));
+#if PY_MAJOR_VERSION == 2
+                char* err_msg = PyString_AsString(obj);
+#else
+                char* err_msg = PyUnicode_AsUTF8(obj);
+#endif
+                Py_DECREF(obj);
+                if (!err_msg) {
+                    PyErr_Print();
+                    gmel_error(
+                        "%s: pyfunc '%s': got GMELException, but failed to "
+                        "convert it to string",
+                        func_name, argv[0]);
+                }
+                gmel_error("%s", err_msg);
+            } else {
+                PyErr_Restore(ptype, pvalue, ptraceback);
+            }
+        }
         PyErr_Print();
         gmel_error("%s: pyfunc '%s': failed on call", func_name, argv[0]);
     }
@@ -146,5 +180,6 @@ int INIT(void) {
     gmk_add_function("py_finalize", (gmk_func_ptr)gmel_py_finalize, 0, 0, 0);
     gmk_add_function("py_eval", (gmk_func_ptr)gmel_py_eval, 1, 1, 0);
     gmk_add_function("py_call", (gmk_func_ptr)gmel_py_call, 1, 0, 0);
+
     return 1;
 }

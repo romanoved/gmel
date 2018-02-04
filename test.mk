@@ -32,14 +32,15 @@ all:
 	@$(if $(failed),$(error tests failed))
 
 include gmel
-$(info GMEL_PY_VERSION=$(GMEL_PY_VERSION))
-$(info )
 
 $(bind popen_bind,bind_r,popen)
 
 $(popen_bind python_sh,python,-c)
 $(popen_bind sequence,seq)
 $(popen_bind wsequence,seq,-w)
+
+$(info GMEL_PY_VERSION=$(GMEL_PY_VERSION))
+$(info )
 
 $(call start_test,gmel_py)
 define py_cmd :=
@@ -58,7 +59,6 @@ endef
 $(py_eval $(py_cmd))
 $(call test_assert,$(py_call test_none),)
 $(call test_assert,$(py_call test2,/home/test,../user),/home/user/ 1)
-$(call py_finalize)
 $(call stop_test)
 
 $(call start_test,strptime)
@@ -79,13 +79,14 @@ __popen_result := [0, 1, 2, 3, 4]
 $(call test_assert,$(popen python,-c,print(range(5))),$(__popen_result))
 $(call stop_test)
 
-$(call start_test,python)
+$(call start_test,python_sh)
 define __python__src :=
 import sys
 for i in xrange(3):
-    print(i,1)
+    print(i, 1)
 endef
-$(call test_assert,$(python_sh $(__python__src)),(0, 1) (1, 1) (2, 1))
+__python_sh_result := (0, 1) (1, 1) (2, 1)
+$(call test_assert,$(python_sh $(__python__src)),$(__python_sh_result))
 $(call stop_test)
 
 $(call start_test,sequence/wsequence)
@@ -107,4 +108,8 @@ __sshell_submake := include gmel\n$$(info $$(sshell $(__sshell_cmd)))
 __sshell_depth := $(if $(call seq,0,$(MAKELEVEL)),,[$(MAKELEVEL)])
 __sshell_result := make$(__sshell_depth): *** popen: ['/bin/bash', '-e', '-o', 'pipefail', '-c', 'echo ok; true | false | true; echo error'] exit with code 1.  Stop.
 $(call test_assert,$(shell make --no-print-directory --eval $$'$(__sshell_submake)' 2>&1),$(__sshell_result))
+$(call stop_test)
+
+$(call start_test,py_finalize)
+$(call py_finalize)
 $(call stop_test)

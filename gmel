@@ -1,4 +1,5 @@
 ifndef __gmel_included
+__gmel_included := 1
 
 .PHONY: gmel.so
 
@@ -15,18 +16,15 @@ ifndef __gmel_included
 # sshell is safe shall:
 # $(bind sshell,popen,/bin/bash,-e,-o,pipefail,-c)
 
-# +some of C functions bindings:
-# $(strptime format,date_str) -> timestamp
-#       $(strptime %Y-%m-%d,2014-01-11) -> 1389384000
-# $(strftime format,timestamp) -> date_str
-#       $(strftime %Y%m%d,1389384000) -> 20140111
-# $(strfptime dst_format,src_format,src_date) -> dst_date
-#       $(strfptime %Y%m%d,%Y-%m-%d %H,2014-01-11 23) -> 20140111
-# load $(__gmel_load_path)gmel_time.so
 
 load gmel.so
 
-__gmel_included := 1
+# $(gmel_set_trace 1)
+
+$(gmel_mft_register bind,gmel_bind,0)
+$(gmel_mft_register bind_r,gmel_bind_r,0)
+$(gmel_mft_register bind_args,gmel_bind_args,0)
+
 
 # $(py_eval $(code)) - eval code in context of __main__ module
 # $(py_call $(callable_name)[, optional args]) - call callable_name with given args
@@ -38,12 +36,55 @@ else
 include gmel_py3
 endif
 
-define __gmel_py_version :=
-import sys
-def gmel_py_version():
-    return sys.version_info[:3]
-endef
+$(gmel_mft_register py_eval,gmel_py_eval,1)
+$(gmel_mft_register py_call,gmel_py_call,1)
+
 $(py_eval import sys; gmel_py_version = lambda: sys.version_info[:3])
 GMEL_PY_VERSION := $(py_call gmel_py_version)
 
+
+# $(strptime format,date_str) -> timestamp
+#       $(strptime %Y-%m-%d,2014-01-11) -> 1389384000
+# $(strftime format,timestamp) -> date_str
+#       $(strftime %Y%m%d,1389384000) -> 20140111
+# $(strfptime dst_format,src_format,src_date) -> dst_date
+#       $(strfptime %Y%m%d,%Y-%m-%d %H,2014-01-11 23) -> 20140111
+define __gmel_py_datefmt :=
+def gmel_strptime(fmt, date_str):
+    import time
+    import datetime
+    return int(time.mktime(datetime.datetime.strptime(date_str, fmt).timetuple()))
+def gmel_strftime(fmt, timestamp):
+    import datetime
+    return datetime.datetime.fromtimestamp(int(timestamp)).strftime(fmt)
+def gmel_strfptime(dst_format, src_format, src_date):
+    return gmel_strftime(dst_format, gmel_strptime(src_format, src_date))
+endef
+$(py_eval $(__gmel_py_datefmt))
+$(undefine __gmel_py_datefmt)
+$(bind_args 2,2,strptime,py_call,gmel_strptime)
+$(bind_args 2,2,strftime,py_call,gmel_strftime)
+$(bind_args 3,3,strfptime,py_call,gmel_strfptime)
+
+
+define __gmel_py_popen :=
+def gmel_popen(*args):
+    import subprocess
+    try:
+        return b' '.join(subprocess.check_output(list(args)).split(b'\n')).strip()
+    except subprocess.CalledProcessError as exc:
+        raise GMELException('popen: {!r} exit with code {}'.format(exc.cmd, exc.returncode))
+endef
+$(py_eval $(__gmel_py_popen))
+$(undefine __gmel_py_popen)
+
+$(bind_args 1,0,popen,py_call,gmel_popen)
+
+#$(bind_args 1,1,sshell,py_call,gmel_popen,/bin/bash,-e,-o,pipefail,-c)
+$(bind_args 1,1,sshell,popen,/bin/bash,-e,-o,pipefail,-c)
+
+#__sshell_cmd := echo ok; true | false | true; echo error
+#$(info SSHELL $(sshell $(__sshell_cmd)))
+
+#$(error done)
 endif # __gmel_included
