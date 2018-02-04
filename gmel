@@ -42,7 +42,6 @@ $(gmel_mft_register py_call,gmel_py_call,1)
 $(py_eval import sys; gmel_py_version = lambda: sys.version_info[:3])
 GMEL_PY_VERSION := $(py_call gmel_py_version)
 
-
 # $(strptime format,date_str) -> timestamp
 #       $(strptime %Y-%m-%d,2014-01-11) -> 1389384000
 # $(strftime format,timestamp) -> date_str
@@ -80,11 +79,6 @@ $(undefine __gmel_py_popen)
 
 $(bind_args 1,0,popen,py_call,gmel_popen)
 
-#$(bind_args 1,1,sshell,py_call,gmel_popen,/bin/bash,-e,-o,pipefail,-c)
 $(bind_args 1,1,sshell,popen,/bin/bash,-e,-o,pipefail,-c)
 
-#__sshell_cmd := echo ok; true | false | true; echo error
-#$(info SSHELL $(sshell $(__sshell_cmd)))
-
-#$(error done)
 endif # __gmel_included
