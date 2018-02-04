@@ -1,5 +1,10 @@
 #pragma once
 
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <gnumake.h>
+
 extern int GMEL_TRACE_LEVEL;
 
 unsigned int parse_uint(const char* str);

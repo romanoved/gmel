@@ -7,7 +7,7 @@ all: test;
 
 
 SO := gmel.so gmel_py2.so gmel_py3.so
-DEPS :=  bind util util_hashtable util_common util_vector util_strview
+DEPS :=  bind util_hashtable util_common util_vector util_strview
 OBJS := $(addprefix build/,$(addsuffix .o,$(DEPS)))
 
 build: $(SO)

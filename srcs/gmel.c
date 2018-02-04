@@ -1,6 +1,6 @@
 #include "bind.h"
 
-#include "util.h"
+#include "util_common.h"
 
 #include <gnumake.h>
 

@@ -10,8 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <gnumake.h>
-
 unsigned int parse_uint(const char* str) {
     errno = 0;
     char* temp;

@@ -1,8 +1,14 @@
 #include <dlfcn.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "bind.h"
-#include "util.h"
+
+#include "util_common.h"
+#include "util_hashtable.h"
+#include "util_strview.h"
+#include "util_vector.h"
+
 
 /* dynamically bind popen wrapper */
 
